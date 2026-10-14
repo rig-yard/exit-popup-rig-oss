@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+next-env.d.ts
+*.tsbuildinfo
+
+# 秘密情報は1度もコミットに入れない(.env.example だけを追跡する)
+.env
+.env.*
+!.env.example
+
+.DS_Store
+*.log
+
+# ビルドの出力(scripts/build-embed.mjs が作る)。ソースは packages/embed/src/
+dist/delivery-assets/
+
+# 検査が一時的に作るファイル
+.tmp-*/
+.wrangler/
+.dev.vars*
+
+# 自分のデプロイ先の値(ドメイン・D1 の id)。git に入れない(docs/deploy.md)
+deploy.local.json
+wrangler.*.generated.jsonc

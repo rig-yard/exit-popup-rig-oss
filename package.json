@@ -1,0 +1,52 @@
+{
+  "name": "adpop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "ADPOP — LP に script を1行貼るだけの離脱ポップ(サーバー・管理画面は AGPL-3.0 / packages/embed は MIT)",
+  "scripts": {
+    "dev": "npm run build:embed && next dev",
+    "build": "npm run build:embed && next build && npm run build:admin-headers",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:bundle-size": "node scripts/check-bundle-size.mjs",
+    "check:embed-independence": "node scripts/check-embed-independence.mjs",
+    "build:embed": "node scripts/build-embed.mjs",
+    "build:admin-headers": "node scripts/build-admin-headers.mjs",
+    "delivery:migrate:local": "node scripts/wrangler-run.mjs delivery d1 migrations apply adpop --local",
+    "delivery:dev": "npm run build:embed && node scripts/wrangler-run.mjs delivery dev",
+    "deploy:delivery": "node scripts/guarded-deploy.mjs delivery",
+    "admin:hash": "node scripts/admin-hash.mjs",
+    "admin:dev": "node scripts/wrangler-run.mjs admin dev",
+    "admin:migrate:local": "node scripts/wrangler-run.mjs admin d1 migrations apply adpop --local",
+    "deploy:admin": "node scripts/guarded-deploy.mjs admin",
+    "config:render": "node scripts/render-config.mjs",
+    "wrangler:delivery": "node scripts/wrangler-run.mjs delivery",
+    "wrangler:admin": "node scripts/wrangler-run.mjs admin",
+    "migrate:remote": "node scripts/migrate-remote.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.13.12",
+    "next": "16.3.8",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260930.2",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "esbuild": "^0.25.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.149.0"
+  }
+}

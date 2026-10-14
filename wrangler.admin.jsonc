@@ -1,0 +1,48 @@
+// 管理画面の Worker(API `/api/admin/*` + Next の静的書き出し)。
+// 配信の Worker(wrangler.delivery.jsonc)とは別。**配信の不具合と管理画面の不具合を切り離す**。
+//
+// 🔴 **秘密はここに書かない**(ADMIN_PASSWORD_HASH / ADMIN_EMAIL / ADMIN_OWNER_ID / ADMIN_RATE_LIMIT_KEY)。
+//   `npm run admin:hash` の出力を `wrangler secret put` で置く。ローカルは `.dev.vars`(.gitignore 済み)。
+//   ⚠ この設定ファイルに鍵の名前が現れたら検査が落ちる(tests/admin-config.test.ts)。
+// 🔴 `routes[0].pattern` と `database_id` は**プレースホルダ**です。自分の値は git に入れない
+//   `deploy.local.json` に書く(`npm run deploy:*` が重ねて deploy する。docs/deploy.md §2・§3)。
+//   プレースホルダのまま deploy しようとすると、deploy 前の検査が止める。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "adpop-admin",
+  "main": "src/admin/worker.ts",
+  "compatibility_date": "2026-09-30",
+  // 🔴 `wrangler deploy` は `out/` をそのまま配り、`_headers` の有無を見ない。
+  //   `next build` だけで止めた `out/` を deploy すると CSP 無しで本番に出る(fail-open)。
+  //   deploy の前に必ず「埋め込み → next build → _headers 組み立て → CSP・配信元・
+  //   D1 の id・ドメインを見る検査」の全工程を通す。
+  //   `NEXT_PUBLIC_DELIVERY_ORIGIN` は `npm run deploy:admin` が配信のホストから決める
+  //   (自分で渡した場合は、配信のホストと完全一致しなければ検査が止める。docs/deploy.md)。
+  "build": {
+    "command": "npm run build && node scripts/check-admin-headers.mjs && node scripts/check-database-ids-match.mjs && node scripts/check-custom-domain.mjs"
+  },
+  // 🔴 既定値に頼らず明示する。
+  //   Version URL(preview_urls)は、修正前の版を本番の secret と D1 のまま動かし続けるので切る。
+  // 🔴 管理画面は Custom Domain(`adpop-admin.example.com` = プレースホルダ)で受ける。zone の routes ではない
+  //   —— custom_domain の Worker より前に走ってしまうため(Cloudflare 公式文書「Custom Domains」)。
+  //   広い pattern を持つ別の Worker が1つ増えるだけで、ログインの通信を横取りできる経路になる。
+  //   `workers_dev` はダッシュボードで切るだけでは次の deploy で復活するので、ここで false にする。
+  "workers_dev": false,
+  "routes": [{ "pattern": "adpop-admin.example.com", "custom_domain": true }],
+  "preview_urls": false,
+  // 🔴 `/api/*` だけ Worker を先に走らせる(Hono)。それ以外は Next の静的書き出し(`out/`)を静的配信する
+  //   (管理画面の設計どおり)。静的ファイルがある URL は Worker を起こさず配る(課金されない)。
+  "assets": { "directory": "./out", "run_worker_first": ["/api/*"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "adpop",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "db/migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "adpop-images" }],
+  // 🔴 呼び出しのログ(Request / Response とメタデータ)を Cloudflare に残さない。
+  //   残すのは匿名化したエラーの1行だけ(src/lib/log/redact.ts)。
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } }
+}

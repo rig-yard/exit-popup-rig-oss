@@ -1,0 +1,15 @@
+-- ADPOP 0008(D1): パターン(バリアント)1件の累計(admin.getVariantStats)を読むための索引だけを足す。
+--
+-- 🔴 **追加だけ**(索引を1本足すだけで、表・トリガ・既存の索引は1つも変えない。
+--   tests/d1-migration-additive.test.ts がスキーマの差分で見る)。トリガは無い(索引だけ)。
+--
+-- 背景:
+--   完全削除の確認ダイアログを開くたびに `admin.getVariantStats` が
+--   `where variant_id = ? and owner_id = ? and kind in (...)` を投げる。既存の索引
+--   (events_owner_occurred_at・events_popup_kind_occurred_at・events_kind_occurred_at・
+--   events_site_kind_occurred_at)はどれも先頭列が variant_id ではないため、このクエリには
+--   使えず、その所有者の全期間の events を走査することになる(件数が増えるほど重くなる)。
+-- 🔴 variant_id は UUID(グローバルに一意)なので、owner_id を索引の列に含めなくても
+--   対象の行を直接絞り込める(owner_id はクエリの残りの行に対する確認でしか使われない)。
+--   先頭列を variant_id にし、同じ索引で kind による絞り込みまで済ませる。
+create index events_variant_kind on events (variant_id, kind);

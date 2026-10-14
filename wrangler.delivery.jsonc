@@ -1,0 +1,48 @@
+// 配信の Worker(`/api/v1/config`・`/api/v1/events`・`/embed/*`)。
+// 管理画面は別の Worker(wrangler.admin.jsonc)。**配信の不具合と管理画面の不具合を切り離す**ため。
+//
+// 🔴 `routes[0].pattern` と `database_id` は**プレースホルダ**です。自分の値は git に入れない
+//   `deploy.local.json` に書く(`npm run deploy:*` が重ねて deploy する。docs/deploy.md §2・§3)。
+//   プレースホルダのまま deploy しようとすると、deploy 前の検査が止める。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "adpop-delivery",
+  "main": "src/delivery/worker.ts",
+  "compatibility_date": "2026-09-30",
+  // 🔴 `wrangler deploy` は `dist/delivery-assets` をそのまま配る。`build.command` を設定しないと、
+  //   埋め込みソースを直した後に `build:embed` を忘れたまま deploy すると**古い成果物が上がる**
+  //   。deploy のたびに埋め込みを束ね直し、サイズ上限・
+  //   ライセンス境界の検査も通してから deploy する。`database_id` の一致も同じコマンドで見る
+  //   (どちらの Worker を先に deploy しても検査が走る)。
+  "build": {
+    "command": "npm run build:embed && npm run check:bundle-size && npm run check:embed-independence && node scripts/check-database-ids-match.mjs && node scripts/check-custom-domain.mjs"
+  },
+  // 🔴 既定値に頼らず明示する。Version URL は修正前の版を本番のデータのまま動かすので切る。
+  // 🔴 配信は Custom Domain(`adpop.example.com` = プレースホルダ)で受ける。zone の routes(パターンで受ける方式)
+  //   ではない —— custom_domain の Worker より前に走ってしまうため(Cloudflare 公式文書「Custom
+  //   Domains」)。広い pattern を持つ別の Worker が1つ増えるだけで、配信の通信を横取りできる経路に
+  //   なる。`workers_dev` はダッシュボードで切るだけでは次の deploy で復活するので、ここで false にする。
+  "workers_dev": false,
+  "routes": [{ "pattern": "adpop.example.com", "custom_domain": true }],
+  "preview_urls": false,
+  // 🔴 静的配信: 埋め込みスクリプト(`npm run build:embed` の出力)。
+  //   ファイルがある URL は Worker を起こさずに配る(課金されない。Workers の公式 pricing)。
+  "assets": { "directory": "./dist/delivery-assets" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "adpop",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "db/migrations"
+    }
+  ],
+  // 画像。⚠ バインドを「読むだけ」に絞る設定は無い。配信の Worker は読むだけの
+  //   `src/lib/data/image-read.ts` しか import しない(tests/delivery-imports.test.ts)。
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "adpop-images" }],
+  // 🔴 **呼び出しのログ(invocation logs)を Cloudflare に残さない**。
+  //   呼び出しのログは「Request, Response, and related metadata」を保存する(Workers Logs の公式文書)。
+  //   README の「IP アドレスを保存しない」と両立させるため切る。残すのは、こちらが console に出す
+  //   **匿名化したエラーの1行だけ**(src/lib/log/redact.ts)。
+  //   ⚠ invocation_logs を切ったときに console の出力が保存されるかは、公式文書に書かれていない(未確認)。
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } }
+}

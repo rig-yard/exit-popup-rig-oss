@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# public リポジトリでは fork からの PR も CI を起こせる。既定の権限を持ち回らないよう
+# 最小(読み取りのみ)を明示する。⚠ いま `GITHUB_TOKEN` を使う step は0本なので、
+# これでジョブの挙動は変わらない。書き込みが要る job ができたら、その job にだけ足す。
+permissions:
+  contents: read
+
+# 同じ枝への push が続いたら、古い実行は打ち切る(Actions の枠を食い潰さないため)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+
+      # 本番で動く依存(`dependencies`)に High 以上の advisory が出たら落とす。
+      # dev 専用の依存(lint/test の道具)はここでは見ない——本番の Worker には入らないため。
+      # ⚠ dev 側の advisory(例: `braces` の修正版なし)は、ここでは意図的に見逃している。
+      - name: npm audit(本番依存のみ・High 以上で失敗)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: lint
+        run: npm run lint
+
+      - name: typecheck
+        run: npm run typecheck
+
+      # 🔴 ここに **D1 の実測**(tests/d1-*.test.ts)と、**埋め込みスクリプトを束ねて実行する検査**が入っている。
+      #   D1 は `wrangler d1 migrations apply --local`(本番と同じ適用の仕方)で作った型紙を複写して使い、
+      #   wrangler が起動する workerd の中の実物の D1 に当てる(tests/setup/d1-template.ts)。
+      #   ⚠ Cloudflare のアカウントも認証情報も要らない(全部ローカル)。
+      - name: test
+        run: npm test
+        env:
+          WRANGLER_SEND_METRICS: "false"
+
+      # 埋め込みスクリプトの gzip 上限。
+      # 判定そのものは tests/bundle-size.test.ts が両側(超える / 超えない)で固定している。
+      - name: 埋め込みスクリプトのサイズ上限
+        run: npm run check:bundle-size
+
+      # packages/embed(MIT)が AGPL 側を読んでいないこと
+      - name: ライセンス分割(依存の向き)
+        run: npm run check:embed-independence
+
+      - name: build
+        run: npm run build
+
+      # 🔴 追跡されている wrangler.*.jsonc は仮の値(example.com 等)しか持たず、deploy.local.json が無いと
+      #   設定は生成されない。ここまでの lint・型・テスト・build は deploy.local.json 無しで通っている。
+      #   dry-run だけは、CI 専用の値(予約済みの .test ドメインで、実在しない)を書いた deploy.local.json
+      #   (.gitignore 済み・ジョブの作業領域の中だけに存在)から設定を生成し、その生成物を使う。
+      - name: CI 専用の deploy.local.json を作って設定を生成する
+        run: |
+          cat > deploy.local.json <<'JSON'
+          {
+            "deliveryHost": "adpop.ci.test",
+            "adminHost": "adpop-admin.ci.test",
+            "databaseId": "00000000-0000-4000-8000-00000000c1c1"
+          }
+          JSON
+          npm run config:render
+
+      # 配信の Worker を、デプロイと同じ束ね方で束ねる(アップロードはしない = 認証は要らない)。
+      # ⚠ 束ねられないもの(Node 専用の import など)はここで落ちる。
+      # ADPOP_*_CONFIG は、build.command の検査に「いま deploy しようとしている設定」を教える。
+      - name: 配信の Worker を束ねる(dry-run)
+        run: npx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/delivery-worker" -c wrangler.delivery.generated.jsonc
+        env:
+          WRANGLER_SEND_METRICS: "false"
+          ADPOP_DELIVERY_CONFIG: wrangler.delivery.generated.jsonc
+          ADPOP_ADMIN_CONFIG: wrangler.admin.generated.jsonc
+
+      # NEXT_PUBLIC_DELIVERY_ORIGIN は配信ホストと一致させる(検査が見る)。
+      - name: 管理画面の Worker を束ねる(dry-run)
+        run: npx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/admin-worker" -c wrangler.admin.generated.jsonc
+        env:
+          WRANGLER_SEND_METRICS: "false"
+          NEXT_PUBLIC_DELIVERY_ORIGIN: https://adpop.ci.test
+          ADPOP_DELIVERY_CONFIG: wrangler.delivery.generated.jsonc
+          ADPOP_ADMIN_CONFIG: wrangler.admin.generated.jsonc
