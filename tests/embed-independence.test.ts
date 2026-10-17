@@ -57,7 +57,7 @@ describe("実在した抜け方(正規表現の版が素通ししたもの)", ()
   it("🔴 空白の無い `import{x}from\"…\"` でも捕まえる(Astra の例)", async () => {
     const root = makeTree({
       "packages/embed/src/loader.ts": `import{metadata}from"../../../src/app/layout";\nexport const v = metadata;\n`,
-      "src/app/layout.ts": `export const metadata = { title: "ADPOP" };\n`,
+      "src/app/layout.ts": `export const metadata = { title: "EXIT POPUP" };\n`,
     });
     trees.push(root);
     const metafile = await metafileOf(root, "packages/embed/src/loader.ts");

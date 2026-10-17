@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
-  "description": "ADPOP — LP に script を1行貼るだけの離脱ポップ(サーバー・管理画面は AGPL-3.0 / packages/embed は MIT)",
+  "description": "EXIT POPUP — LP に script を1行貼るだけの離脱ポップ(サーバー・管理画面は AGPL-3.0 / packages/embed は MIT)",
   "scripts": {
     "dev": "npm run build:embed && next dev",
     "build": "npm run build:embed && next build && npm run build:admin-headers",

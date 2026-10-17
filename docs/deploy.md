@@ -1,6 +1,6 @@
 # 自前ホスト: Cloudflare に立てる
 
-ADPOP を自分の Cloudflare アカウント(Workers + D1 + R2)に立てる手順です。機能と制限は
+EXIT POPUP を自分の Cloudflare アカウント(Workers + D1 + R2)に立てる手順です。機能と制限は
 [README.md](../README.md) を見てください。
 
 > この手順の「検証済み」の範囲: クリーンな checkout からの `npm ci` → `npm run build` →
@@ -165,12 +165,12 @@ npm run deploy:admin      # 管理画面の Worker
    (一次: [Cloudflare Access for Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/))。
    Worker に紐づく Custom Domain も自動で保護されます。WebSocket を使う Worker では使えませんが、管理画面は使っていません。
 2. **Authentication policy** で、運用者本人のメールアドレス(ワンタイムコード)か Google アカウントだけを許可し、**Apply Access**。
-3. **確かめ方**: 未ログインのプライベートウィンドウで `https://<管理画面ホスト>/` を開き、ADPOP のログイン画面ではなく
+3. **確かめ方**: 未ログインのプライベートウィンドウで `https://<管理画面ホスト>/` を開き、EXIT POPUP のログイン画面ではなく
    **Cloudflare Access の認証画面**が先に出ること。
 4. 料金: [Zero Trust plans](https://www.cloudflare.com/plans/zero-trust-services/) は無料プランを案内していますが、
    具体的な無料の人数とカード登録の要否は確認できていません(未確認)。サインアップの画面で確かめてください。
 
-Access を設定しても、ADPOP 自身のパスワード・Origin 検査は外さないでください(Access の設定ミスで素通りになったときの2枚目の守りです)。
+Access を設定しても、EXIT POPUP 自身のパスワード・Origin 検査は外さないでください(Access の設定ミスで素通りになったときの2枚目の守りです)。
 
 ## 8. secret を投入する(自分の端末で)
 
@@ -194,7 +194,7 @@ npm run wrangler:admin -- secret put ADMIN_EMAIL            # ← ログイン�
 管理画面は配信ホストと同じ登録ドメインのサブドメインに置くため、一致方式が「登録ドメイン単位」のツールでは、
 同じドメインの別のサブドメインにもこの項目が自動入力の候補として出ます。
 
-- 一致方式を「ホスト完全一致」に絞れるツール: ADPOP の管理画面の項目だけ、ホスト完全一致に設定する。
+- 一致方式を「ホスト完全一致」に絞れるツール: EXIT POPUP の管理画面の項目だけ、ホスト完全一致に設定する。
 - 絞れないツール(ブラウザ内蔵の保存機能など): 候補が出ても、アドレスバーのホストが管理画面ホストに完全に一致していることを
   目で確認してから選ぶ。
 

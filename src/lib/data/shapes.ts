@@ -85,7 +85,7 @@ export function normalizeToText(value: unknown): string {
  * ⚠ **DB の CHECK には入れていない**(限界として記録): SQLite の CHECK は同じ行の他の列を
  *   参照できるので条件自体は書けるが、既存の表に CHECK を追加するには表の再生成が要り、
  *   0002 の「追加だけ」の方針と緊張する。v1 はこの2枚(body.ts + admin.ts)を正とする。
- * ⚠ **既存データの移行は不要**: 本番の Cloudflare には ADPOP のリソースがまだ0件で、
+ * ⚠ **既存データの移行は不要**: 本番の Cloudflare には EXIT POPUP のリソースがまだ0件で、
  *   移行すべき既存の行が無い。
  */
 export function requiresImageAlt(input: { kind: unknown; content?: { buttonLabel?: unknown; imageAlt?: unknown } }): boolean {
