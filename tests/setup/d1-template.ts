@@ -30,7 +30,7 @@ export default function setup(project: TestProject): () => void {
     ],
     { cwd: ROOT, stdio: "pipe", env: { ...process.env, CI: "1", WRANGLER_SEND_METRICS: "false" } },
   );
-  // 静的配信の中身(t.js / adpop.js / _headers)を作る。配信の Worker を起動する検査が読む
+  // 静的配信の中身(t.js / exit-popup.js / 旧名の adpop.js / _headers)を作る。配信の Worker を起動する検査が読む
   mkdirSync(path.join(ROOT, "dist/delivery-assets"), { recursive: true });
   execFileSync(process.execPath, [path.join(ROOT, "scripts/build-embed.mjs")], { cwd: ROOT, stdio: "pipe" });
   project.provide("d1Template", dir);

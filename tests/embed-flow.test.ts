@@ -14,7 +14,7 @@
 import { JSDOM } from "jsdom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NAMESPACE, type Bridge, type EventPayload } from "../packages/embed/src/bridge";
-import { IMPLEMENTED_TRIGGERS, startAdpop } from "../packages/embed/src/loader";
+import { IMPLEMENTED_TRIGGERS, startExitPopup } from "../packages/embed/src/loader";
 import { IMAGE_LOAD_TIMEOUT_MS, startRuntime } from "../packages/embed/src/runtime";
 
 const SITE_KEY = "0123456789abcdef0123456789abcdef";
@@ -106,7 +106,7 @@ function stubNetwork(options: { config?: string | null; status?: number } = {}):
 
 function installTag(): void {
   const script = doc.createElement("script");
-  script.setAttribute("data-adpop-site", SITE_KEY);
+  script.setAttribute("data-exit-popup-site", SITE_KEY);
   script.src = `${DELIVERY}/embed/t.js`;
   doc.head.appendChild(script);
 }
@@ -126,7 +126,7 @@ function exitIntentFallback(clientY = 0): void {
 
 /** ポップの中身(Shadow root の中)。⚠ `mode: "open"` にしてあるので読める。 */
 function popup(): ShadowRoot | null {
-  return doc.querySelector("[data-adpop]")?.shadowRoot ?? null;
+  return doc.querySelector("[data-exit-popup]")?.shadowRoot ?? null;
 }
 
 /** ローダが `<script>` を足した後、本体が読み込まれた状況を作る。 */
@@ -136,7 +136,7 @@ async function bootRuntime(): Promise<void> {
 }
 
 async function bootLoader(): Promise<void> {
-  startAdpop(win, doc);
+  startExitPopup(win, doc);
   await flush();
 }
 
@@ -176,7 +176,7 @@ describe("トリガ(動くのは exit intent・scroll・dwell の3つ)", () => {
 
     expect(sent.map((e) => e.kind)).toEqual(["fire"]);
     expect(sent[0].triggerKind).toBe("exit_intent");
-    expect(doc.querySelector(`script[src="${DELIVERY}/embed/adpop.js"]`)).not.toBeNull();
+    expect(doc.querySelector(`script[src="${DELIVERY}/embed/exit-popup.js"]`)).not.toBeNull();
   });
 
   it("⑥ 画面の上端でないマウスリーブでは発火しない", async () => {
@@ -391,7 +391,7 @@ describe("④ 滞在時間(dwell)", () => {
   it("🔴 既定の45秒経過したら発火する(threshold が null)", async () => {
     stubNetwork({ config: configBody({ triggers: [{ kind: "dwell", threshold: null }] }) });
     installTag();
-    startAdpop(win, doc);
+    startExitPopup(win, doc);
     await vi.advanceTimersByTimeAsync(0); // 設定の取得(fetch)を解決させる
 
     await vi.advanceTimersByTimeAsync(44_999);
@@ -407,7 +407,7 @@ describe("④ 滞在時間(dwell)", () => {
     //   管理 API(exactKeys で欠落を拒否する)より緩くなる。
     stubNetwork({ config: configBody({ triggers: [{ kind: "dwell" } as unknown as { kind: string; threshold: unknown }] }) });
     installTag();
-    startAdpop(win, doc);
+    startExitPopup(win, doc);
     await vi.advanceTimersByTimeAsync(0);
 
     await vi.advanceTimersByTimeAsync(3_600_000);
@@ -417,7 +417,7 @@ describe("④ 滞在時間(dwell)", () => {
   it("🔴 threshold(秒)を指定すればその秒数で発火する", async () => {
     stubNetwork({ config: configBody({ triggers: [{ kind: "dwell", threshold: 10 }] }) });
     installTag();
-    startAdpop(win, doc);
+    startExitPopup(win, doc);
     await vi.advanceTimersByTimeAsync(0);
 
     await vi.advanceTimersByTimeAsync(9_999);
@@ -431,7 +431,7 @@ describe("④ 滞在時間(dwell)", () => {
       config: configBody({ minDisplayDelaySeconds: 5, triggers: [{ kind: "dwell", threshold: 1 }] }),
     });
     installTag();
-    startAdpop(win, doc);
+    startExitPopup(win, doc);
     await vi.advanceTimersByTimeAsync(0);
 
     await vi.advanceTimersByTimeAsync(4_999);
@@ -448,7 +448,7 @@ describe("④ 滞在時間(dwell)", () => {
   ])("🔴🔴 壊れた threshold(%s)は丸めず、登録そのものを諦める(保存側より緩めない・2枚目の関門)", async (_label, threshold) => {
     stubNetwork({ config: configBody({ triggers: [{ kind: "dwell", threshold }] }) });
     installTag();
-    startAdpop(win, doc);
+    startExitPopup(win, doc);
     await vi.advanceTimersByTimeAsync(0);
 
     // どれだけ待っても発火しない(タイマーそのものが登録されていない)
@@ -460,7 +460,7 @@ describe("④ 滞在時間(dwell)", () => {
     (win as unknown as { matchMedia: unknown }).matchMedia = () => ({ matches: true });
     stubNetwork({ config: configBody({ triggers: [{ kind: "dwell", threshold: 1 }] }) });
     installTag();
-    startAdpop(win, doc);
+    startExitPopup(win, doc);
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(1000);
 
@@ -473,7 +473,7 @@ describe("④ 滞在時間(dwell)", () => {
       config: configBody({ triggers: [{ kind: "exit_intent", threshold: null }, { kind: "dwell", threshold: 5 }] }),
     });
     installTag();
-    startAdpop(win, doc);
+    startExitPopup(win, doc);
     await vi.advanceTimersByTimeAsync(0);
 
     exitIntent();
@@ -618,7 +618,7 @@ describe("② スクロール到達率(scroll)", () => {
     try {
       stubNetwork({ config: configBody({ minDisplayDelaySeconds: 3, triggers: [{ kind: "scroll", threshold: 50 }] }) });
       installTag();
-      startAdpop(win, doc);
+      startExitPopup(win, doc);
       await vi.advanceTimersByTimeAsync(0); // 設定の取得を解決させる
       setScrollMetrics({ viewport: 500, full: 2000, scrollTop: 600 }); // (600+500)/2000 = 55% >= 50%
 
@@ -673,7 +673,7 @@ describe("頻度制御", () => {
     await flush();
 
     expect(sent.map((e) => e.kind)).toEqual(["fire", "suppressed"]);
-    expect(doc.querySelector("script[src*='adpop.js']")).toBeNull();
+    expect(doc.querySelector("script[src*='exit-popup.js']")).toBeNull();
   });
 
   it("表示すると、次のページ読み込みでは抑制される(記録はローダが持つ)", async () => {
@@ -731,8 +731,8 @@ describe("頻度制御", () => {
     expect(sent.map((e) => e.kind)).toEqual(["fire", "suppressed"]);
   });
 
-  it("🔴 プレビュー(?adpop_preview=1)は頻度制御を無視し、**1件も数えない**", async () => {
-    newDom(`${PAGE}?adpop_preview=1`);
+  it("🔴 プレビュー(?exit_popup_preview=1)は頻度制御を無視し、**1件も数えない**", async () => {
+    newDom(`${PAGE}?exit_popup_preview=1`);
     win.localStorage.setItem(
       `adpop:${SITE_KEY}`,
       JSON.stringify({ lastImpressionAt: Date.now() }),
@@ -855,7 +855,7 @@ describe("表示(本体)", () => {
 
       await bootRuntime();
 
-      expect(doc.querySelector("[data-adpop]"), `${destinationUrl} で描いてしまった`).toBeNull();
+      expect(doc.querySelector("[data-exit-popup]"), `${destinationUrl} で描いてしまった`).toBeNull();
       expect(sent, "描いていないのにイベントを送った").toEqual([]);
     },
   );
@@ -883,7 +883,7 @@ describe("表示(本体)", () => {
 
     await bootRuntime();
 
-    expect(doc.querySelector("[data-adpop]")).not.toBeNull();
+    expect(doc.querySelector("[data-exit-popup]")).not.toBeNull();
     expect(sent.map((e) => e.kind)).toEqual(["impression"]);
   });
 
@@ -897,7 +897,7 @@ describe("表示(本体)", () => {
 
     expect(sent.at(-1)?.kind).toBe("close");
     expect(sent.at(-1)?.closeReason).toBe(reason);
-    expect(doc.querySelector("[data-adpop]"), "閉じたのに DOM に残っている").toBeNull();
+    expect(doc.querySelector("[data-exit-popup]"), "閉じたのに DOM に残っている").toBeNull();
   });
 
   it("Esc で閉じ、理由が記録される", async () => {
@@ -907,7 +907,7 @@ describe("表示(本体)", () => {
 
     expect(sent.at(-1)?.kind).toBe("close");
     expect(sent.at(-1)?.closeReason).toBe("esc");
-    expect(doc.querySelector("[data-adpop]")).toBeNull();
+    expect(doc.querySelector("[data-exit-popup]")).toBeNull();
   });
 
   it("パネルの中をクリックしても閉じない(背景タップと取り違えない)", async () => {
@@ -916,7 +916,7 @@ describe("表示(本体)", () => {
     await flush();
 
     expect(sent.filter((e) => e.kind === "close")).toEqual([]);
-    expect(doc.querySelector("[data-adpop]")).not.toBeNull();
+    expect(doc.querySelector("[data-exit-popup]")).not.toBeNull();
   });
 
   it("閉じるのは1回だけ数える(二重に送らない)", async () => {
@@ -1008,7 +1008,7 @@ describe("表示(本体)", () => {
     doc.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
-    expect(doc.querySelector("[data-adpop]"), "関係ないキーで閉じた").not.toBeNull();
+    expect(doc.querySelector("[data-exit-popup]"), "関係ないキーで閉じた").not.toBeNull();
   });
 
   it("見出しが無いときは、ダイアログに aria-label が付く", async () => {
@@ -1032,14 +1032,14 @@ describe("表示(本体)", () => {
     await show();
     await bootRuntime();
 
-    expect(doc.querySelectorAll("[data-adpop]")).toHaveLength(1);
+    expect(doc.querySelectorAll("[data-exit-popup]")).toHaveLength(1);
     expect(sent.filter((e) => e.kind === "impression")).toHaveLength(1);
   });
 
   it("🔴 ローダ抜きで本体だけ読み込まれても何もしない(fail-closed)", async () => {
     await bootRuntime();
 
-    expect(doc.querySelector("[data-adpop]")).toBeNull();
+    expect(doc.querySelector("[data-exit-popup]")).toBeNull();
     expect((win as unknown as Record<string, Bridge | undefined>)[NAMESPACE]).toBeUndefined();
   });
 });
@@ -1173,7 +1173,7 @@ describe("画像型", () => {
 
     await bootRuntime();
 
-    expect(doc.querySelector("[data-adpop]"), "崩れた imageKey なのに描いてしまった").toBeNull();
+    expect(doc.querySelector("[data-exit-popup]"), "崩れた imageKey なのに描いてしまった").toBeNull();
     expect(sent, "描いていないのにイベントを送った").toEqual([]);
   });
 
@@ -1201,7 +1201,7 @@ describe("画像型", () => {
 
     await bootRuntime();
 
-    expect(doc.querySelector("[data-adpop]")).toBeNull();
+    expect(doc.querySelector("[data-exit-popup]")).toBeNull();
   });
 
   it("a11y: Tab は 閉じる → 画像リンク → ボタン → (末尾から戻る)の順に閉じ込める", async () => {
@@ -1226,7 +1226,7 @@ describe("画像型", () => {
     doc.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape" }));
     await flush();
 
-    expect(doc.querySelector("[data-adpop]")).toBeNull();
+    expect(doc.querySelector("[data-exit-popup]")).toBeNull();
     expect(sent.at(-1)?.kind).toBe("close");
     expect(sent.at(-1)?.closeReason).toBe("esc");
   });
@@ -1237,7 +1237,7 @@ describe("画像型", () => {
     (root.querySelector(".backdrop") as HTMLElement).click();
     await flush();
 
-    expect(doc.querySelector("[data-adpop]")).toBeNull();
+    expect(doc.querySelector("[data-exit-popup]")).toBeNull();
     expect(sent.at(-1)?.closeReason).toBe("backdrop");
   });
 
@@ -1284,7 +1284,7 @@ describe("画像型", () => {
     await flush();
 
     expect(createdImages, "<img> が作られていない(この検査の前提が壊れている)").toHaveLength(1);
-    expect(doc.querySelector("[data-adpop]"), "読み込みを待っている間にもう描いてしまった").toBeNull();
+    expect(doc.querySelector("[data-exit-popup]"), "読み込みを待っている間にもう描いてしまった").toBeNull();
 
     // 読み込みを待っている間に、利用者が要素Bへフォーカスを移す
     const elementB = doc.createElement("button");
@@ -1296,7 +1296,7 @@ describe("画像型", () => {
     // 画像の読み込みが終わる
     createdImages[0].dispatchEvent(new win.Event("load"));
     await flush();
-    expect(doc.querySelector("[data-adpop]"), "読み込みが終わったのに描いていない").not.toBeNull();
+    expect(doc.querySelector("[data-exit-popup]"), "読み込みが終わったのに描いていない").not.toBeNull();
 
     (popup()?.querySelector(".close-image") as HTMLElement).click();
     await flush();
@@ -1315,7 +1315,7 @@ describe("画像型", () => {
     it("画像が404(error)— DOM・shown・impression のどれも成立しない", async () => {
       await showImage({ headline: "", body: "", buttonLabel: "", imageAlt: "説明", imageKey: IMAGE_KEY }, "error");
 
-      expect(doc.querySelector("[data-adpop]"), "読み込み失敗なのに描いてしまった").toBeNull();
+      expect(doc.querySelector("[data-exit-popup]"), "読み込み失敗なのに描いてしまった").toBeNull();
       expect(sent.map((e) => e.kind)).toEqual(["fire"]);
       // bridge.shown が立っていないことも確認する(ローダ側が「出せなかった」と判定できる)
       const bridge = (win as unknown as Record<string, { shown?: boolean }>)[NAMESPACE];
@@ -1339,14 +1339,14 @@ describe("画像型", () => {
           }),
         });
         installTag();
-        startAdpop(win, doc);
+        startExitPopup(win, doc);
         await vi.advanceTimersByTimeAsync(0); // 設定の取得(fetch の Promise)を解決させる
         exitIntent();
         await vi.advanceTimersByTimeAsync(0); // fire → 本体(<script>)の挿入まで
         startRuntime(win, doc); // 本体が読み込まれた状況を作る(画像の `load`/`error` は一度も発火させない)
         await vi.advanceTimersByTimeAsync(IMAGE_LOAD_TIMEOUT_MS + 1000); // 上限を越える
 
-        expect(doc.querySelector("[data-adpop]"), "タイムアウトしたのに描いてしまった").toBeNull();
+        expect(doc.querySelector("[data-exit-popup]"), "タイムアウトしたのに描いてしまった").toBeNull();
         expect(sent.filter((e) => e.kind === "impression")).toEqual([]);
       } finally {
         vi.useRealTimers();
@@ -1398,7 +1398,7 @@ describe("画像型", () => {
       for (const img of createdImages) img.dispatchEvent(new win.Event("load"));
       await flush();
 
-      expect(doc.querySelectorAll("[data-adpop]"), "ポップが複数出た").toHaveLength(1);
+      expect(doc.querySelectorAll("[data-exit-popup]"), "ポップが複数出た").toHaveLength(1);
       expect(sent.filter((e) => e.kind === "impression"), "impression が複数送られた").toHaveLength(1);
     });
 
@@ -1428,7 +1428,7 @@ describe("画像型", () => {
           }),
         });
         installTag();
-        startAdpop(win, doc);
+        startExitPopup(win, doc);
         await vi.advanceTimersByTimeAsync(0);
         exitIntent();
         await vi.advanceTimersByTimeAsync(0);
@@ -1440,7 +1440,7 @@ describe("画像型", () => {
         createdImages[0].dispatchEvent(new win.Event("load"));
         await vi.advanceTimersByTimeAsync(0);
 
-        expect(doc.querySelector("[data-adpop]"), "遅れて届いた load で描いてしまった").toBeNull();
+        expect(doc.querySelector("[data-exit-popup]"), "遅れて届いた load で描いてしまった").toBeNull();
         expect(sent.filter((e) => e.kind === "impression")).toEqual([]);
         const bridge = (win as unknown as Record<string, { shown?: boolean }>)[NAMESPACE];
         expect(bridge?.shown, "遅れて届いた load で shown が立った").not.toBe(true);
@@ -1461,7 +1461,7 @@ describe("画像型", () => {
       const bridge = (win as unknown as Record<string, { drawing?: boolean; shown?: boolean; render?: () => void }>)[
         NAMESPACE
       ];
-      expect(doc.querySelector("[data-adpop]"), "前提: まだ描かれていない").toBeNull();
+      expect(doc.querySelector("[data-exit-popup]"), "前提: まだ描かれていない").toBeNull();
       expect(bridge.drawing, "画像エラーの後も drawing が true のまま(2回目の render が無視される)").not.toBe(true);
       expect(bridge.shown).not.toBe(true);
 
@@ -1470,7 +1470,7 @@ describe("画像型", () => {
       bridge.render?.();
       await flush();
 
-      expect(doc.querySelector("[data-adpop]"), "drawing が false に戻ったはずなのに、次の render() で描けない").not.toBeNull();
+      expect(doc.querySelector("[data-exit-popup]"), "drawing が false に戻ったはずなのに、次の render() で描けない").not.toBeNull();
       expect(bridge.shown).toBe(true);
     });
 
@@ -1491,7 +1491,7 @@ describe("画像型", () => {
           }),
         });
         installTag();
-        startAdpop(win, doc);
+        startExitPopup(win, doc);
         await vi.advanceTimersByTimeAsync(0);
         exitIntent();
         await vi.advanceTimersByTimeAsync(0);
@@ -1501,7 +1501,7 @@ describe("画像型", () => {
         const bridge = (win as unknown as Record<string, { drawing?: boolean; shown?: boolean; render?: () => void }>)[
           NAMESPACE
         ];
-        expect(doc.querySelector("[data-adpop]"), "前提: まだ描かれていない").toBeNull();
+        expect(doc.querySelector("[data-exit-popup]"), "前提: まだ描かれていない").toBeNull();
         expect(bridge.drawing, "タイムアウトの後も drawing が true のまま").not.toBe(true);
 
         // 次の挑戦に備えて実タイマーへ戻し、画像が読み込める状況で render をもう一度呼ぶ
@@ -1510,7 +1510,7 @@ describe("画像型", () => {
         bridge.render?.();
         await flush();
 
-        expect(doc.querySelector("[data-adpop]"), "drawing が false に戻ったはずなのに、次の render() で描けない").not.toBeNull();
+        expect(doc.querySelector("[data-exit-popup]"), "drawing が false に戻ったはずなのに、次の render() で描けない").not.toBeNull();
       } finally {
         vi.useRealTimers();
       }
@@ -1548,7 +1548,7 @@ describe("画像型", () => {
       await bootRuntime();
 
       const bridge = (win as unknown as Record<string, Bridge>)[NAMESPACE];
-      expect(doc.querySelector("[data-adpop]"), "前提: 不正な imageKey では描かれない").toBeNull();
+      expect(doc.querySelector("[data-exit-popup]"), "前提: 不正な imageKey では描かれない").toBeNull();
       expect(bridge.drawing, "draw() 内の例外の後も drawing が true のまま").not.toBe(true);
       expect(bridge.shown).not.toBe(true);
 
@@ -1558,7 +1558,7 @@ describe("画像型", () => {
       bridge.render?.();
       await flush();
 
-      expect(doc.querySelector("[data-adpop]"), "drawing が false に戻ったはずなのに、次の render() で描けない").not.toBeNull();
+      expect(doc.querySelector("[data-exit-popup]"), "drawing が false に戻ったはずなのに、次の render() で描けない").not.toBeNull();
     });
   });
 });

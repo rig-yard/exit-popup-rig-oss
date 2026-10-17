@@ -29,7 +29,7 @@ describe("エラーの1行の匿名化", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     logFailure("events", new Error("D1_ERROR: bad value '198.51.100.9'"));
     expect(spy).toHaveBeenCalledOnce();
-    expect(spy.mock.calls[0][0]).toBe("[adpop] events failed: Error: D1_ERROR: bad value <quoted>");
+    expect(spy.mock.calls[0][0]).toBe("[exit-popup] events failed: Error: D1_ERROR: bad value <quoted>");
   });
 });
 

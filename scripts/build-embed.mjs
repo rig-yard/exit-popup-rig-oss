@@ -2,7 +2,7 @@
 /*
   埋め込みスクリプトを束ね、**2か所**へ書き出す。
 
-    ① `packages/embed/dist/`  …… パッケージ(`adpop-js`)の成果物
+    ① `packages/embed/dist/`  …… パッケージ(`exit-popup-js`)の成果物
     ② `dist/delivery-assets/embed/` …… **配信の Worker が URL の root で配る場所**(`/embed/t.js`)
        + 同じディレクトリに `_headers`(キャッシュの指定。Workers の静的配信が読む)
 
@@ -18,7 +18,7 @@ import { buildEmbedBundle, REPO_ROOT } from "./embed-build.mjs";
 
 for (const bundle of BUNDLES) {
   const { code } = await buildEmbedBundle(bundle);
-  for (const relative of [bundle.out, bundle.publicOut]) {
+  for (const relative of [bundle.out, bundle.publicOut, ...(bundle.legacyPublicOuts ?? [])]) {
     const target = path.join(REPO_ROOT, relative);
     mkdirSync(path.dirname(target), { recursive: true });
     writeFileSync(target, code);

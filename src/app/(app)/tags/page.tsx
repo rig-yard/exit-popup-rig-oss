@@ -44,18 +44,13 @@ import { ConfirmRemoveOriginDialog } from "../../_components/ConfirmRemoveOrigin
 import { useSessionState } from "../../_lib/sessionContext";
 import { TAP_TARGET_44_ICON } from "../../_lib/a11y";
 import { DELIVERY_ORIGIN } from "../../_lib/delivery";
+import { embedTag } from "../../_lib/embedTag";
 import { nextLoadErrorState } from "../../_lib/pageLoad";
 import { saveOrigins as saveOriginsPure } from "../../_lib/originsSave";
 import { isOrigin } from "../../../lib/data/shapes";
 
 /** サーバー側(`src/admin/body.ts`)と同じ上限。許可ドメインは20件まで。 */
 const MAX_ORIGINS = 20;
-
-/** 配信元が未設定なら壊れたタグを見せない(旧 `/site` と同じ判定)。 */
-function embedTag(siteKey: string): string | null {
-  if (DELIVERY_ORIGIN === "") return null;
-  return `<script async src="${DELIVERY_ORIGIN}/embed/t.js" data-adpop-site="${siteKey}"></script>`;
-}
 
 /**
  * サイトが0件のときの初回の設定。許可ドメインの入力+「追加」だけ
@@ -306,7 +301,7 @@ function TagsContent() {
                     <InfoTooltip text="LP の </body> の直前に貼り付けてください" />
                   </div>
                   {(() => {
-                    const tag = embedTag(site.siteKey);
+                    const tag = embedTag(DELIVERY_ORIGIN, site.siteKey);
                     if (tag === null) {
                       return (
                         <div className="rounded-lg border border-dashed border-line bg-paper px-3 py-2.5 text-xs text-ink/60">配信先が未設定です</div>

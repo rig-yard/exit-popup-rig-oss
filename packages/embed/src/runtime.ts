@@ -25,7 +25,7 @@ import { readBridge, type Bridge, type CloseReason, type RenderRequest } from ".
 import { imageUrlOf, isSafeDestination } from "./frequency";
 import { buildPopupView, DIALOG_LABEL, FALLBACK_BUTTON_LABEL, STYLE } from "./popup-view";
 
-export const ADPOP_RUNTIME_VERSION = "0.1.0";
+export const EXIT_POPUP_RUNTIME_VERSION = "0.1.0";
 
 // ⚠ 既存の import 元(`./runtime`)を壊さないための再輸出。実体は `popup-view.ts`。
 export { DIALOG_LABEL, FALLBACK_BUTTON_LABEL, STYLE };
@@ -66,7 +66,7 @@ function loadImage(win: Win, img: HTMLImageElement, src: string, timeoutMs: numb
       img.removeEventListener("error", onError);
       win.clearTimeout(timer);
       if (ok) resolve();
-      else reject(new Error("adpop: image load failed or timed out"));
+      else reject(new Error("exit-popup: image load failed or timed out"));
     };
     const onLoad = () => finish(true);
     const onError = () => finish(false);
@@ -142,7 +142,7 @@ async function draw(win: Win, doc: Document, bridge: Bridge, request: RenderRequ
     ⚠ ここで throw すると `render()` は `bridge.shown` を立てない(=「出せなかった」が伝わる)。
   */
   const imageUrl = isImage ? imageUrlOf(request.deliveryOrigin, content.imageKey) : null;
-  if (isImage && imageUrl === null) throw new Error("adpop: invalid image variant");
+  if (isImage && imageUrl === null) throw new Error("exit-popup: invalid image variant");
 
   // 🔴 DOM と CSS を組み立てるのは popup-view.ts(見た目・動きは変えていない)。
   const view = buildPopupView(doc, { kind: request.variant.kind, content, destinationUrl: request.variant.destinationUrl });

@@ -1,12 +1,15 @@
-# adpop-js(埋め込みスクリプト・MIT)
+# exit-popup-js(埋め込みスクリプト・MIT)
 
 **このディレクトリだけが MIT。** リポジトリの他は AGPL-3.0(ルートの `LICENSE` / `LICENSING.md`)。
 
 ## 貼り方
 
 ```html
-<script async src="https://<配信ホスト>/embed/t.js" data-adpop-site="<サイトキー>"></script>
+<script async src="https://<配信ホスト>/embed/t.js" data-exit-popup-site="<サイトキー>"></script>
 ```
+
+**旧名・当面維持**: `data-adpop-site` 属性・`/embed/adpop.js`・`?adpop_preview=1` を使った既存のタグも動く。
+新旧の両方が付いたときは、新名が空でなければ新名が勝つ(空なら旧名)。
 
 **配信ホストはタグの `src` から読む。**コードに直書きしていないので、ホストを変えたら
 タグを貼り替えるだけで移せる。⚠ サイトキーは **HTML に出る公開値**で、秘密ではない
@@ -17,7 +20,7 @@
 | ファイル | 役割 | 状態 |
 |---|---|---|
 | `src/loader.ts` → `dist/t.js` | 全訪問者に配るローダ。タグを読む → 設定を取る → トリガを仕掛ける → 発火したら本体を取りに行く | 動く |
-| `src/runtime.ts` → `dist/adpop.js` | 発火してから取りに行く本体。Shadow DOM でポップを描き、表示・クリック・閉じるを送る | 動く |
+| `src/runtime.ts` → `dist/exit-popup.js`(旧名の `/embed/adpop.js` でも同じ中身を配る) | 発火してから取りに行く本体。Shadow DOM でポップを描き、表示・クリック・閉じるを送る | 動く |
 | `src/frequency.ts` | 頻度制御の判定と、遷移先 URL の検査(副作用なし) | — |
 | `src/bridge.ts` | ローダと本体をつなぐ**唯一のグローバル**と、配信のパス | — |
 

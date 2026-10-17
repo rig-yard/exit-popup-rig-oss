@@ -26,7 +26,9 @@ import {
   IMPLEMENTED_TRIGGERS as IMPLEMENTED_TRIGGERS_FROM_BRIDGE,
   isValidThreshold,
   readBridge,
+  LEGACY_SITE_ATTRIBUTE,
   RUNTIME_PATH,
+  SITE_ATTRIBUTE,
   TRIGGER_DEVICES,
   writeBridge,
   type Bridge,
@@ -41,13 +43,13 @@ import {
 } from "./bridge";
 import { isSafeDestination, suppressionReason, type VisitorState } from "./frequency";
 
-export const ADPOP_LOADER_VERSION = "0.1.0";
-
-/** タグに書く属性。**`data-site` より衝突しにくい形**にした。 */
-export const SITE_ATTRIBUTE = "data-adpop-site";
+export const EXIT_POPUP_LOADER_VERSION = "0.1.0";
 
 /** プレビュー用の強制表示。⚠ **この表示は数値に数えない**。 */
-export const PREVIEW_PARAM = "adpop_preview";
+export const PREVIEW_PARAM = "exit_popup_preview";
+
+/** 旧名(当面維持)。🔴 両方付いているときは**新名の値が勝つ**(`isPreview`)。 */
+export const LEGACY_PREVIEW_PARAM = "adpop_preview";
 
 /**
  * exit intent(⑥)の「上端」とみなす幅(px)。⚠ **0 ではなく数 px の幅を持たせてある**
@@ -184,6 +186,17 @@ function bumpSession(win: Win, key: string): void {
   }
 }
 
+/** タグのサイトキー。🔴 新名が空でなければ新名、そうでなければ旧名(新旧の両方が付いたら、新名が空でない限り新名が勝つ)。 */
+function siteKeyOf(script: Element): string | null {
+  return script.getAttribute(SITE_ATTRIBUTE) || script.getAttribute(LEGACY_SITE_ATTRIBUTE);
+}
+
+/** プレビューか。🔴 新名のパラメータが付いていればその値だけを見る(旧名は無視)。付いていなければ旧名を見る。 */
+function isPreview(win: Win): boolean {
+  const params = new URL(win.location.href).searchParams;
+  return (params.get(PREVIEW_PARAM) ?? params.get(LEGACY_PREVIEW_PARAM)) === "1";
+}
+
 /**
  * 自分を読み込んだ `<script>` から、**サイトキー**と**配信ホスト**を読む。
  * 🔴 **配信ホストをコードに直書きしない**(ドメインは未取得で、後で変わる)。
@@ -192,11 +205,11 @@ function bumpSession(win: Win, key: string): void {
 export function readTag(doc: Document): { siteKey: string; deliveryOrigin: string } | null {
   const current = doc.currentScript as HTMLScriptElement | null;
   const script =
-    current && current.getAttribute(SITE_ATTRIBUTE)
+    current && siteKeyOf(current)
       ? current
-      : (doc.querySelector(`script[${SITE_ATTRIBUTE}]`) as HTMLScriptElement | null);
+      : (doc.querySelector(`script[${SITE_ATTRIBUTE}],script[${LEGACY_SITE_ATTRIBUTE}]`) as HTMLScriptElement | null);
   if (!script) return null;
-  const siteKey = script.getAttribute(SITE_ATTRIBUTE);
+  const siteKey = siteKeyOf(script);
   if (!siteKey) return null;
   try {
     // ⚠ `script.src` は解決済みの絶対 URL。取れない(インライン)なら諦める = fail-closed
@@ -400,9 +413,9 @@ function makeSender(ctx: Runtime): (event: EventPayload) => void {
   };
 }
 
-/** 本体(`adpop.js`)を取りに行く。**発火して、抑制もされなかったときだけ**呼ばれる。 */
+/** 本体(`exit-popup.js`)を取りに行く。**発火して、抑制もされなかったときだけ**呼ばれる。 */
 /**
- * 本体(`adpop.js`)を取りに行く。**発火して、抑制もされなかったときだけ**呼ばれる。
+ * 本体(`exit-popup.js`)を取りに行く。**発火して、抑制もされなかったときだけ**呼ばれる。
  *
  * ⚠ **「出せなかった」を呼び出し側へ返す仕組みは、いまは持たない。**
  *   🔴 それが要ったのは**「戻る」トリガ**だけ(出せなかったら `history.back()` で通し直すため)で、
@@ -454,6 +467,7 @@ function arm(ctx: Runtime, popup: PopupConfig): void {
       1回だけ読み捨てる**(サイト単位の新しい鍵には古い記憶が無いので、全員が1回だけ
       「まだ見ていない」扱いになる)。本番はまだ LP にタグを貼っていないため実害は無い。
   */
+  // ⚠ 保存キーは旧名の `adpop:` のまま。変えると、訪問者の「閉じた/見た」記録が読めなくなり、閉じた人にまた出る。
   const storageKey = `adpop:${ctx.siteKey}`;
   const armedAt = Date.now();
   /*
@@ -707,10 +721,10 @@ function arm(ctx: Runtime, popup: PopupConfig): void {
  * 起動する。**同じサイトキーで2回貼られても1回しか動かない**(多重読み込み耐性)。
  * @returns 起動したら true。既に居る / タグが読めない / 失敗、なら false
  */
-export function startAdpop(win: Win, doc: Document): boolean {
+export function startExitPopup(win: Win, doc: Document): boolean {
   if (readBridge(win) !== undefined) return false;
 
-  const bridge: Bridge = { version: ADPOP_LOADER_VERSION };
+  const bridge: Bridge = { version: EXIT_POPUP_LOADER_VERSION };
   // 🔴 **最初に置く。** 置く前に何かで失敗すると、2回目の読み込みが素通りする
   writeBridge(win, bridge);
 
@@ -719,7 +733,7 @@ export function startAdpop(win: Win, doc: Document): boolean {
 
   let preview = false;
   quiet(() => {
-    preview = new URL(win.location.href).searchParams.get(PREVIEW_PARAM) === "1";
+    preview = isPreview(win);
   });
 
   const ctx: Runtime = {
@@ -766,11 +780,14 @@ export function startAdpop(win: Win, doc: Document): boolean {
   return true;
 }
 
+/** 旧名(当面維持)。同じ関数。 */
+export const startAdpop = startExitPopup;
+
 /*
   ⚠ **読み込まれたら自分で起動する**(タグ1本で動くことが要件)。
     テストは `vi.resetModules()` してから import し、**この行を通した状態**で測る
-    (`startAdpop` を手で呼ぶだけだと、自動起動の経路を1度も通らない)。
+    (`startExitPopup` を手で呼ぶだけだと、自動起動の経路を1度も通らない)。
 */
 if (typeof window !== "undefined" && typeof document !== "undefined") {
-  quiet(() => startAdpop(window as Win, document));
+  quiet(() => startExitPopup(window as Win, document));
 }

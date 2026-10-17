@@ -89,7 +89,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-5 text-center font-mono text-xs text-ink/60">adpop-js · self-hosted</p>
+        <p className="mt-5 text-center font-mono text-xs text-ink/60">exit-popup-js · self-hosted</p>
       </div>
     </div>
   );

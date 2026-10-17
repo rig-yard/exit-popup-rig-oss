@@ -85,7 +85,7 @@ function evaluateBundle(code: string): void {
 
 function installTag(): void {
   const script = document.createElement("script");
-  script.setAttribute("data-adpop-site", SITE_KEY);
+  script.setAttribute("data-exit-popup-site", SITE_KEY);
   script.src = "https://delivery.example.com/embed/t.js";
   document.head.appendChild(script);
 }
@@ -317,7 +317,7 @@ describe("出荷する束ねた出力(t.js)", () => {
     evaluateBundle(runtimeCode);
     // 🔴 前提の検算②: **本当に描かれたか**(描かれていないなら draw を1行も通していない)
     await waitFor(
-      () => document.querySelector("[data-adpop]") !== null,
+      () => document.querySelector("[data-exit-popup]") !== null,
       "ポップが出ていない = draw を測っていない",
     );
 
@@ -335,7 +335,7 @@ describe("出荷する束ねた出力(t.js)", () => {
     await driveToRuntime();
     evaluateBundle(runtimeCode);
     await waitFor(
-      () => document.querySelector("[data-adpop]") !== null,
+      () => document.querySelector("[data-exit-popup]") !== null,
       "ポップが出ていない = draw を測っていない",
     );
 
@@ -416,7 +416,7 @@ describe("出荷する束ねた出力(t.js)", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(document.body.childElementCount).toBe(bodyChildren);
-    expect(document.querySelector("[data-adpop]")).toBeNull();
+    expect(document.querySelector("[data-exit-popup]")).toBeNull();
   });
 
   it("④ 設定が 500 でも、403 でも、壊れた JSON でも、何も出さない", async () => {
@@ -433,8 +433,8 @@ describe("出荷する束ねた出力(t.js)", () => {
       evaluateBundle(loaderCode);
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      expect(document.querySelector("[data-adpop]")).toBeNull();
-      expect(document.querySelector("script[src*='adpop.js']")).toBeNull();
+      expect(document.querySelector("[data-exit-popup]")).toBeNull();
+      expect(document.querySelector("script[src*='exit-popup.js']")).toBeNull();
     }
   });
 
@@ -515,7 +515,7 @@ describe("🔴🔴 埋め込み先の履歴を1バイトも触らない", () => 
     await driveToRuntime();
     evaluateBundle(runtimeCode);
     await waitFor(
-      () => document.querySelector("[data-adpop]") !== null,
+      () => document.querySelector("[data-exit-popup]") !== null,
       "ポップが出ていない = 描画まで通していない",
     );
 
@@ -538,7 +538,7 @@ describe("🔴🔴 埋め込み先の履歴を1バイトも触らない", () => 
     await flush();
 
     expect(calls).toEqual([]);
-    expect(document.querySelector("script[src*='adpop.js']"), "戻るで発火した").toBeNull();
+    expect(document.querySelector("script[src*='exit-popup.js']"), "戻るで発火した").toBeNull();
   });
 
   it("🔴 この検査は、実際に触ったら気づく(検査そのものの前提)", () => {

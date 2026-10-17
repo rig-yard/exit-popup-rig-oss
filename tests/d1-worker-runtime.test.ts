@@ -107,6 +107,17 @@ describe("配信の Worker(workerd で起動)", () => {
     expect((await response.text()).length).toBeGreaterThan(100);
   });
 
+  it("🔴 ③ 本体は新パス /embed/exit-popup.js と旧パス /embed/adpop.js の両方で、同じ中身が配られる", async () => {
+    const next = await worker.fetch("http://adpop.test/embed/exit-popup.js");
+    const legacy = await worker.fetch("http://adpop.test/embed/adpop.js");
+    expect(next.status).toBe(200);
+    expect(legacy.status).toBe(200);
+    expect(legacy.headers.get("cache-control")).toBe("public, max-age=300, s-maxage=300");
+    const body = await next.text();
+    expect(body.length).toBeGreaterThan(100);
+    expect(await legacy.text()).toBe(body);
+  });
+
   it("知らないパスは 404", async () => {
     expect((await worker.fetch("http://adpop.test/admin")).status).toBe(404);
   });

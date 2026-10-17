@@ -129,7 +129,7 @@ describe("「GIF」の印を LP 側に出さない", () => {
     startRuntime(win, doc);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const host = doc.querySelector("[data-adpop]");
+    const host = doc.querySelector("[data-exit-popup]");
     expect(host, "GIFの画像ポップが描かれていない(この検査の前提が壊れている)").not.toBeNull();
     // ⚠ `<style>` の中身(CSS コメント含む)は訪問者にもスクリーンリーダーにも見えないので対象外。
     //   見るのは `.panel`(実際に描かれた要素)の文字とラベルだけ。

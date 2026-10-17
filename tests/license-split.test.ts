@@ -56,9 +56,9 @@ describe("ライセンスの置き場", () => {
     expect(license).toContain('THE SOFTWARE IS PROVIDED "AS IS"');
   });
 
-  it("埋め込みパッケージの npm 名は adpop-js(案1)", () => {
+  it("埋め込みパッケージの npm 名は exit-popup-js(案1)", () => {
     const pkg = JSON.parse(read("packages/embed/package.json"));
-    expect(pkg.name).toBe("adpop-js");
+    expect(pkg.name).toBe("exit-popup-js");
     expect(pkg.license).toBe("MIT");
     // ⚠ publish は公開ゲートの後。それまで private を外さない。
     expect(pkg.private).toBe(true);

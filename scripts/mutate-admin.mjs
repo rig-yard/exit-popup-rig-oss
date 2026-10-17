@@ -209,7 +209,7 @@ export const MUTATIONS = [
     "name": "B23 ログイン失敗の本文をログに出す",
     "file": "src/admin/app.ts",
     "from": "    if (!(emailOk && passwordOk)) return fail(c, 401, \"invalid_credentials\");",
-    "to": "    if (!(emailOk && passwordOk)) {\n      console.error(\"[adpop-admin] login failed\", parsed.value);\n      return fail(c, 401, \"invalid_credentials\");\n    }",
+    "to": "    if (!(emailOk && passwordOk)) {\n      console.error(\"[exit-popup-admin] login failed\", parsed.value);\n      return fail(c, 401, \"invalid_credentials\");\n    }",
     "tests": [
       "tests/admin-api.test.ts"
     ]

@@ -182,7 +182,7 @@ export function createAdminApp(): Hono<AppEnv> {
   app.use(`${API_PREFIX}/*`, async (c, next) => {
     const config = readAdminConfig(c.env);
     if (config === null) {
-      console.error("[adpop-admin] admin secrets are missing or malformed");
+      console.error("[exit-popup-admin] admin secrets are missing or malformed");
       return fail(c, 503, "config");
     }
     c.set("config", config);

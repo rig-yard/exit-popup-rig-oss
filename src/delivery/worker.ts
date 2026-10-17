@@ -138,7 +138,7 @@ export async function handleDelivery(request: Request, env: DeliveryEnv): Promis
   if (route === "events" && request.method !== "POST") return deny(405, "method");
   // 🔴 バインドが無い = こちらの設定の問題(運用者に見せる)。訪問者には「出ないだけ」
   if (!hasDatabase(env)) {
-    console.error("[adpop] D1 binding `DB` is missing");
+    console.error("[exit-popup] D1 binding `DB` is missing");
     return deny(503, "config");
   }
   return route === "config" ? handleConfig(request, env) : handleEvents(request, env);

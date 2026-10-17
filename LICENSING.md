@@ -4,7 +4,7 @@ EXIT POPUP は **ディレクトリでライセンスを分けている**。
 
 | 場所 | ライセンス | 本文 |
 |---|---|---|
-| `packages/embed/` (npm 名 `adpop-js`) | **MIT** | `packages/embed/LICENSE` |
+| `packages/embed/` (npm 名 `exit-popup-js`) | **MIT** | `packages/embed/LICENSE` |
 | **それ以外すべて**(Next.js のサーバー・管理画面・マイグレーション・スクリプト) | **AGPL-3.0** | ルートの `LICENSE` |
 
 Copyright (c) 2026 Takumi Nagano

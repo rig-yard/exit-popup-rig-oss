@@ -17,9 +17,9 @@ export function redact(message: string): string {
     .slice(0, MAX_LENGTH);
 }
 
-/** `[adpop] <どこで> failed: <種類>: <伏せた文言>` を1行出す。 */
+/** `[exit-popup] <どこで> failed: <種類>: <伏せた文言>` を1行出す。 */
 export function logFailure(where: string, error: unknown): void {
   const name = error instanceof Error ? error.name : typeof error;
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`[adpop] ${where} failed: ${name}: ${redact(message)}`);
+  console.error(`[exit-popup] ${where} failed: ${name}: ${redact(message)}`);
 }
