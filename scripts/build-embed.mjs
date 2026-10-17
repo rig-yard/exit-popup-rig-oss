@@ -11,14 +11,17 @@
     → `npm run build` / `npm run dev` の**前に必ず走らせる**(package.json)。
   ⚠ `npm run delivery:dev` も先にこれを走らせる。
 */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { BUNDLES, DELIVERY_ASSETS_DIR } from "./bundle-size.mjs";
 import { buildEmbedBundle, REPO_ROOT } from "./embed-build.mjs";
 
+// 出力先は毎回作り直す(消した・改名したファイルが前のビルドから残って配られ続けるのを防ぐ)
+rmSync(path.join(REPO_ROOT, DELIVERY_ASSETS_DIR, "embed"), { recursive: true, force: true });
+
 for (const bundle of BUNDLES) {
   const { code } = await buildEmbedBundle(bundle);
-  for (const relative of [bundle.out, bundle.publicOut, ...(bundle.legacyPublicOuts ?? [])]) {
+  for (const relative of [bundle.out, bundle.publicOut]) {
     const target = path.join(REPO_ROOT, relative);
     mkdirSync(path.dirname(target), { recursive: true });
     writeFileSync(target, code);

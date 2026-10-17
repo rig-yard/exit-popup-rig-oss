@@ -10,13 +10,6 @@
 /** ⚠ 埋め込み先の LP に既に在る名前とぶつからない形にする。中身は下の `Bridge`(ローダと本体の受け渡し口)。 */
 export const NAMESPACE = "__exitPopupBridge";
 
-/**
- * 旧名(当面維持)。⚠ **読むだけ**で、書くのは `NAMESPACE` だけ(「`window` に生やすのは鍵1つ」は変わらない)。
- * 読む理由: 旧名の時代のローダ(`t.js`)がブラウザのキャッシュに残ったまま、同じ `/embed/adpop.js` で
- * 新しい本体を取りに来ると、旧名の鍵に置かれた注文を本体が見つけられず、何も出なくなるため。
- */
-export const LEGACY_NAMESPACE = "__adpopExitPopup";
-
 /*
   ⚠ **配信ホストは書かない。パスだけ。** ホストはローダが自分の `src` から取る(直書きしない方針)。
   🔴 `RUNTIME_PATH` は `scripts/bundle-size.mjs` の `publicOut` と**同じ場所を指していないと、
@@ -25,16 +18,8 @@ export const LEGACY_NAMESPACE = "__adpopExitPopup";
   ⚠ このモジュールに**副作用のあるものを置かない** —— 検査が「起動させずに定数だけ読む」ために import する。
 */
 export const RUNTIME_PATH = "/embed/exit-popup.js";
-/** 旧名(当面維持)。⚠ ローダは取りに行かない。すでに貼られたタグ・キャッシュ中の旧ローダのために**配信だけ**続ける。 */
-export const LEGACY_RUNTIME_PATH = "/embed/adpop.js";
 /** タグに書く属性。**`data-site` より衝突しにくい形**にした。⚠ 管理画面が出すタグ(`src/app/_lib/embedTag.ts`)もこれを読む。 */
 export const SITE_ATTRIBUTE = "data-exit-popup-site";
-
-/**
- * 旧名(当面維持)。すでに貼られたタグを壊さないために**読み取りだけ**続ける。
- * 🔴 両方付いているときは、**新名が空でなければ新名が勝つ(空なら旧名)**(`loader.ts` の `siteKeyOf`)。
- */
-export const LEGACY_SITE_ATTRIBUTE = "data-adpop-site";
 
 export const CONFIG_PATH = "/api/v1/config";
 export const EVENTS_PATH = "/api/v1/events";
@@ -225,8 +210,7 @@ export type Bridge = {
 type GlobalWithBridge = Record<string, unknown>;
 
 export function readBridge(win: unknown): Bridge | undefined {
-  const record = win as GlobalWithBridge;
-  const value = record[NAMESPACE] ?? record[LEGACY_NAMESPACE];
+  const value = (win as GlobalWithBridge)[NAMESPACE];
   return typeof value === "object" && value !== null ? (value as Bridge) : undefined;
 }
 

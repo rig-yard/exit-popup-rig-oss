@@ -39,9 +39,6 @@ export const BUNDLES = [
     out: "packages/embed/dist/exit-popup.js",
     publicOut: "dist/delivery-assets/embed/exit-popup.js",
     url: "/embed/exit-popup.js",
-    // 旧名(当面維持)。すでに貼られたタグ・キャッシュ中の旧ローダが取りに来るので、同じ中身を旧パスにも置く。
-    // ⚠ 出力先の写しなので `tests/embed-safety.test.ts` が `LEGACY_RUNTIME_PATH` と突き合わせる。
-    legacyPublicOuts: ["dist/delivery-assets/embed/adpop.js"],
     label: "本体(発火してから取りに行く)",
     gzipLimit: 20 * KB,
   },

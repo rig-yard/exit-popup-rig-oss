@@ -3,7 +3,6 @@
   ⚠ 属性名は `packages/embed/src/bridge.ts` の `SITE_ATTRIBUTE`(新名)を読む —— 写しを作ると、
     ローダが読む名前とずれた日に「貼ったのに動かない」タグを配ることになる。
   ⚠ `loader.ts` は import しない(読み込むと管理画面の上でローダが自動起動してしまう)。
-    旧名 `data-adpop-site` はローダが読み続けるが、**ここでは出さない**(新しく貼る人には新名だけを見せる)。
 */
 import { SITE_ATTRIBUTE } from "../../../packages/embed/src/bridge";
 

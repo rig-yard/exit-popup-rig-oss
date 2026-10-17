@@ -212,10 +212,8 @@ export function buildPopupView(doc: Document, input: PopupViewInput): PopupView 
   const isImage = input.kind === "image";
 
   const host = doc.createElement("div");
-  // ⚠ LP の CSS が拾える手掛かりを残す(ポップの存在は隠さない)。
-  //   旧名 `data-adpop` は、すでに LP 側の CSS がそれを指していても効き続けるよう当面維持する(同じ要素に両方付ける)。
+  // ⚠ LP の CSS が拾える手掛かりを1つだけ残す(ポップの存在は隠さない)
   host.setAttribute("data-exit-popup", "");
-  host.setAttribute("data-adpop", "");
   const shadow = host.attachShadow({ mode: "open" });
 
   const style = doc.createElement("style");

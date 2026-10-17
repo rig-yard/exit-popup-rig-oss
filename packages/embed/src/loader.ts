@@ -26,7 +26,6 @@ import {
   IMPLEMENTED_TRIGGERS as IMPLEMENTED_TRIGGERS_FROM_BRIDGE,
   isValidThreshold,
   readBridge,
-  LEGACY_SITE_ATTRIBUTE,
   RUNTIME_PATH,
   SITE_ATTRIBUTE,
   TRIGGER_DEVICES,
@@ -47,9 +46,6 @@ export const EXIT_POPUP_LOADER_VERSION = "0.1.0";
 
 /** プレビュー用の強制表示。⚠ **この表示は数値に数えない**。 */
 export const PREVIEW_PARAM = "exit_popup_preview";
-
-/** 旧名(当面維持)。🔴 両方付いているときは**新名の値が勝つ**(`isPreview`)。 */
-export const LEGACY_PREVIEW_PARAM = "adpop_preview";
 
 /**
  * exit intent(⑥)の「上端」とみなす幅(px)。⚠ **0 ではなく数 px の幅を持たせてある**
@@ -186,17 +182,6 @@ function bumpSession(win: Win, key: string): void {
   }
 }
 
-/** タグのサイトキー。🔴 新名が空でなければ新名、そうでなければ旧名(新旧の両方が付いたら、新名が空でない限り新名が勝つ)。 */
-function siteKeyOf(script: Element): string | null {
-  return script.getAttribute(SITE_ATTRIBUTE) || script.getAttribute(LEGACY_SITE_ATTRIBUTE);
-}
-
-/** プレビューか。🔴 新名のパラメータが付いていればその値だけを見る(旧名は無視)。付いていなければ旧名を見る。 */
-function isPreview(win: Win): boolean {
-  const params = new URL(win.location.href).searchParams;
-  return (params.get(PREVIEW_PARAM) ?? params.get(LEGACY_PREVIEW_PARAM)) === "1";
-}
-
 /**
  * 自分を読み込んだ `<script>` から、**サイトキー**と**配信ホスト**を読む。
  * 🔴 **配信ホストをコードに直書きしない**(ドメインは未取得で、後で変わる)。
@@ -205,11 +190,11 @@ function isPreview(win: Win): boolean {
 export function readTag(doc: Document): { siteKey: string; deliveryOrigin: string } | null {
   const current = doc.currentScript as HTMLScriptElement | null;
   const script =
-    current && siteKeyOf(current)
+    current && current.getAttribute(SITE_ATTRIBUTE)
       ? current
-      : (doc.querySelector(`script[${SITE_ATTRIBUTE}],script[${LEGACY_SITE_ATTRIBUTE}]`) as HTMLScriptElement | null);
+      : (doc.querySelector(`script[${SITE_ATTRIBUTE}]`) as HTMLScriptElement | null);
   if (!script) return null;
-  const siteKey = siteKeyOf(script);
+  const siteKey = script.getAttribute(SITE_ATTRIBUTE);
   if (!siteKey) return null;
   try {
     // ⚠ `script.src` は解決済みの絶対 URL。取れない(インライン)なら諦める = fail-closed
@@ -733,7 +718,7 @@ export function startExitPopup(win: Win, doc: Document): boolean {
 
   let preview = false;
   quiet(() => {
-    preview = isPreview(win);
+    preview = new URL(win.location.href).searchParams.get(PREVIEW_PARAM) === "1";
   });
 
   const ctx: Runtime = {
@@ -779,9 +764,6 @@ export function startExitPopup(win: Win, doc: Document): boolean {
   });
   return true;
 }
-
-/** 旧名(当面維持)。同じ関数。 */
-export const startAdpop = startExitPopup;
 
 /*
   ⚠ **読み込まれたら自分で起動する**(タグ1本で動くことが要件)。
